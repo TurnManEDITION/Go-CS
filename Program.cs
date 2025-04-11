@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 class Program
 {
@@ -26,13 +27,32 @@ class Program
 
         if (!process.HasExited) // Проверка на работу процессора
         {
-            process.Kill(); // Завершаем процесс
-            Console.WriteLine("Процесс завершен."); // Выводим то, что процесс завершён
+            [DllImport("kernel32.dll")]
+            static extern bool TerminateProcess(IntPtr hProcess, uint uExitCode);
+            [DllImport("kernel32.dll", SetLastError = true)]
+            static extern IntPtr OpenProcess(uint processAccess, bool bInheritHandle, int processId);
+            const uint PROCESS_TERMINATE = 0x0001;
+            int processId = process.Id;
+            IntPtr hProcess = OpenProcess(PROCESS_TERMINATE, false, processId);
+            if (hProcess != IntPtr.Zero)
+            {
+                TerminateProcess(hProcess, 0);
+                Console.WriteLine($"Process ID: {process.Id}, Name: {process.ProcessName}");
+                Console.WriteLine("Процесс принудительно завершён.");
+            }
+            else
+            {
+                Console.WriteLine("Не удалось открыть процесс.");
+            }
         }
         else
         {
-            Console.WriteLine("Процесс уже завершен."); // Выводим то, что процесс уже был завершён
+            Console.WriteLine("Процесс уже завершен.");
         }
+        string name = "main";//процесс, который нужно убить
+        Process[] etc = Process.GetProcesses();//получим процессы
+        foreach (Process anti in etc)//обойдем каждый процесс
+            if (anti.ProcessName.ToLower().Contains(name.ToLower())) anti.Kill();//найдем нужный и убьем
         Console.WriteLine("Press enter");
         Console.ReadLine();
     }
